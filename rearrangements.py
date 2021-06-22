@@ -40,129 +40,133 @@ plt.rcParams['legend.framealpha'] = 0.8 # legend transparency, range: [0,1]
 #------------- End Matplotlib settings -------------#
 
 
-# Get the partial sums within x +- precision.
-PRECISION = 10E-8
-POS_INDEX = NEG_INDEX = 1
+def get_number():
+    # x = float(input('Provide a real number:\n'))
+    x = 5.198
+    print( f'Target number: {x}' )
 
-def alternating_harmonic_sequence(n, pos=True):
+    return x
+    
+
+def get_desired_precision():
+    # Get the partial sums within x +- precision.
+    # p = int(input('Provide number of decimal points the partial sums should agree on:\n'))
+    # p = 3
+    p = 9
+    print(f'Will rearrange partial sums to be within {p} decimal points of target number.')
+    return 10**-p
+
+
+###################### Conditionally Convergent Sequences ######################
+
+
+def alternating_harmonic_sequence(n, choice=0):
     """ Provides terms of the alternating Harmonic sequence.
         
         Args:
             n (int): the current index
     
         Kwargs:
-            pos (bool): True if the number should be mapped to an even term (corresponds to the positive terms of the Harmonic sequence) and False if it should be mapped to an odd term (corresponds to negative terms).
+            choice (0): positive choice grabs the nth positive term in the subsequence, negative choice grabs the nth negative term in the subsequence, choice of 0 grabs the nth term in the sequence.
     
     
         Returns:
             (None): none
     
     """
-    return 1/(2*n) if pos else 1/( 2*(n + 1) )
+    if isinstance(n, tuple):
+        # We were provided an interval requesting a range of elements
+        return np.array([ 1/k if (k % 2 == 0) else -1/k for k in range(1, n+1)])
+
+    if choice > 0:
+        return 1/(2*n)
+
+    if choice < 0:
+        return 1/(2*n - 1)
+
+    return 1/n
     
 
-def get_number():
-    # x = float(input('Provide a real number:\n'))
-    # x = 0.5423
-    x = 5.198
-    print( f'x: {x}' )
+def get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=10**-3):
+    # Tracks where we are in the subsequence of positive and negative terms
+    pos_index = neg_index = 1
 
-    return x
-    
+    # Holds the sequence of partial sums
+    partial_sums = []
 
-def get_partial_sums(x, partial_sums=[0]):
-    """ Recursive function to get partial sums by calling back on itself as the
-        sequence converges more closely to requested real number.
-        
-        Args:
-            arg1 (arg1 type): arg1 description.
+    # Do part of the while loop, get the last term of the sequence
+    s = 0
     
-        Kwargs:
-            karg1 (arg1 type): arg1 description.
-    
-    
-        Returns:
-            (None): none
-    
-    """
-    global POS_INDEX, NEG_INDEX
+    # While the partial sum has not converged to our desired degree of
+        # precision
+    while np.abs(s - x) > precision:
 
-    while partial_sums[-1] <= x:
-        # Check if we're within our desired precision
-        if np.abs(partial_sums[-1] - x) < PRECISION:
-            # Remove the leading zero
-            return partial_sums[1:]
-        
-        s = partial_sums[-1] + alternating_harmonic_sequence(POS_INDEX, pos=True)
+        if s < x:
+            # We are underestimating the number so continue adding positive
+                # terms
+            s += alternating_harmonic_sequence(pos_index, choice=1)
+            pos_index += 1
 
-        print( f's: {s}. n: {POS_INDEX + NEG_INDEX}' )
-        
-        POS_INDEX += 1
+        else:
+            # We are overestimating
+            s -= alternating_harmonic_sequence(neg_index, choice=-1)
+            neg_index += 1
+            
 
         partial_sums.append(s)
-
-
-    while partial_sums[-1] >= x:
-        # Check if we're within our desired precision
-        if np.abs(partial_sums[-1] - x) < PRECISION:
-            return partial_sums[1:]
-
-
-        s = partial_sums[-1] - alternating_harmonic_sequence(NEG_INDEX, pos=False)
-        NEG_INDEX += 1
-        
-        partial_sums.append(s)
-
-    # We aren't within our desired level of precision so go again
-    try:
-        return get_partial_sums(x, partial_sums=partial_sums)
-    except RecursionError:
-        print('Recursion error, returning partial sums as-is.')
-        return partial_sums[1:]
+    
+    return partial_sums
 
 
 #------------- Entry code -------------#
 
+
 def main():
-    print('rearrangements.py')
-
     x = get_number()
+    precision = get_desired_precision()
 
-    partial_sums = get_partial_sums(x)
-    print( f'partial_sums: {partial_sums}' )
+    partial_sums = get_partial_sums(x, precision=precision)
+    print('Sequence of partial sums has converged.')
     
     #------------- Plotting -------------#
     # Number of terms used in rearrangement
     n = len(partial_sums)
+    
+    print(f'There are {n} partial sums.') 
     ns = np.arange(1, n + 1)
 
 
-    fig = plt.figure(figsize=(16, 4)) 
+    fig = plt.figure(figsize=(12, 4)) 
     gs = gridspec.GridSpec(1, 2, figure=fig)
 
     ax = fig.add_subplot(gs[0, :-1])
+    print('Plotting...')
     ax.plot(ns, np.full((n,), x), label='x', linestyle='-', zorder=9999)
     # Plot the partial sums
     ax.plot(ns, partial_sums, label='Rearrangement', linestyle='', marker='.', markersize=0.9)
+    print('Plotting complete.')
 
     ax.legend(loc='lower left')
     ax.set_xlim(left=3)
     ax.set_ylim(bottom=4.9, top=5.3)
-
+    
     ax2 = fig.add_subplot(gs[0, -1])
-    alternating_harmonic_sequence = np.array(
-        [ (-1)**n * 1/n for n in range(1, n+1) ]
-    )
-    partial_sums = [
-        alternating_harmonic_sequence[:i].sum()
-        for i in range(1, n+1)
-    ]
 
+    print('Calculating sequence of partial sums of original arrangement.')
+    alternating_harmonic_sequence = np.array(
+        [ 1/k if (k % 2 == 0) else -1/k for k in range(1, n+1)]
+    )
+
+    partial_sums = [alternating_harmonic_sequence[0]]
+
+    for a in alternating_harmonic_sequence[1:]:
+        partial_sums.append(partial_sums[-1] + a)
+
+    print('Plotting original series.')
     ax2.plot(ns, partial_sums, label='Partial sums', linestyle='', marker='.', markersize=0.9)
     ax2.set_xlim(left=3)
     ax2.set_ylim(bottom=-0.75, top=-0.65)
     ax2.legend(loc='lower right')
-    
     
     plt.show()
     
