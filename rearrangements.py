@@ -3,6 +3,10 @@
 
 **Author: Jonathan Delgado**
 
+Todo:
+    * implement a Sequence object with methods such as "next" and "next_neg" etc.
+    * request the desired sequence from the user.
+
 """
 import numpy as np
 
@@ -41,18 +45,30 @@ plt.rcParams['legend.framealpha'] = 0.8 # legend transparency, range: [0,1]
 
 
 def get_number():
-    # x = float(input('Provide a real number:\n'))
-    x = 5.198
+    """ Request and gets a target number from user input.
+    
+        Returns:
+            (float): the provided number.
+    
+    """
+    x = float(input('Provide a real number:\n'))
+    # x = 5.198
     print( f'Target number: {x}' )
 
     return x
     
 
 def get_desired_precision():
+    """ Requests the number of decimal places the rearrangement should aim to 
+        agree with the target number to.
+        
+        Returns:
+            (None): none
+    
+    """
     # Get the partial sums within x +- precision.
-    # p = int(input('Provide number of decimal points the partial sums should agree on:\n'))
-    # p = 3
-    p = 9
+    p = int(input('Provide number of decimal points the partial sums should agree on:\n'))
+    # p = 9
     print(f'Will rearrange partial sums to be within {p} decimal points of target number.')
     return 10**-p
 
@@ -61,7 +77,8 @@ def get_desired_precision():
 
 
 def alternating_harmonic_sequence(n, choice=0):
-    """ Provides terms of the alternating Harmonic sequence.
+    """ Provides terms of the alternating Harmonic sequence:
+        (https://en.wikipedia.org/wiki/Harmonic_series_(mathematics)). Note that for this implementation all odd terms are negative.
         
         Args:
             n (int): the current index
@@ -69,9 +86,8 @@ def alternating_harmonic_sequence(n, choice=0):
         Kwargs:
             choice (0): positive choice grabs the nth positive term in the subsequence, negative choice grabs the nth negative term in the subsequence, choice of 0 grabs the nth term in the sequence.
     
-    
         Returns:
-            (None): none
+            (float): the requested term.
     
     """
     if choice > 0:
@@ -94,9 +110,8 @@ def alternating_log_sequence(n, choice=0):
         Kwargs:
             choice (0): positive choice grabs the nth positive term in the subsequence, negative choice grabs the nth negative term in the subsequence, choice of 0 grabs the nth term in the sequence.
     
-    
         Returns:
-            (None): none
+            (float): the requested term.
     
     """
     if choice > 0:
@@ -111,7 +126,23 @@ def alternating_log_sequence(n, choice=0):
 
 ######################## Rearrangement body ########################
 
+
 def get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=10**-3):
+    """ Gets the rearranged partial sums that converge to x up to the provided 
+        precision.
+        
+        Args:
+            x (float): the target number.
+    
+        Kwargs:
+            sequence (function): the provided sequence.
+
+            precision (float): the desired precision.
+    
+        Returns:
+            (list): the sequence of partial sums.
+    
+    """
     # Tracks where we are in the subsequence of positive and negative terms
     pos_index = neg_index = 1
 
@@ -136,7 +167,6 @@ def get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=10**-3
             s -= sequence(neg_index, choice=-1)
             neg_index += 1
             
-
         partial_sums.append(s)
     
     return partial_sums
