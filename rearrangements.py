@@ -74,18 +74,42 @@ def alternating_harmonic_sequence(n, choice=0):
             (None): none
     
     """
-    if isinstance(n, tuple):
-        # We were provided an interval requesting a range of elements
-        return np.array([ 1/k if (k % 2 == 0) else -1/k for k in range(1, n+1)])
-
     if choice > 0:
-        return 1/(2*n)
+        m = 2*n
+    elif choice < 0:
+        m = 2*n - 1
+    else:
+        m = n
 
-    if choice < 0:
-        return 1/(2*n - 1)
+    return 1/m
 
-    return 1/n
+
+def alternating_log_sequence(n, choice=0):
+    """ Provides terms of the logarithmic series
+        (https://mathworld.wolfram.com/ConditionalConvergence.html).
+        
+        Args:
+            n (int): the current index
     
+        Kwargs:
+            choice (0): positive choice grabs the nth positive term in the subsequence, negative choice grabs the nth negative term in the subsequence, choice of 0 grabs the nth term in the sequence.
+    
+    
+        Returns:
+            (None): none
+    
+    """
+    if choice > 0:
+        m = 2*n
+    elif choice < 0:
+        m = 2*n - 1
+    else:
+        m = n
+
+    return np.log(m)/m
+    
+
+######################## Rearrangement body ########################
 
 def get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=10**-3):
     # Tracks where we are in the subsequence of positive and negative terms
@@ -104,12 +128,12 @@ def get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=10**-3
         if s < x:
             # We are underestimating the number so continue adding positive
                 # terms
-            s += alternating_harmonic_sequence(pos_index, choice=1)
+            s += sequence(pos_index, choice=1)
             pos_index += 1
 
         else:
             # We are overestimating
-            s -= alternating_harmonic_sequence(neg_index, choice=-1)
+            s -= sequence(neg_index, choice=-1)
             neg_index += 1
             
 
@@ -125,48 +149,53 @@ def main():
     x = get_number()
     precision = get_desired_precision()
 
-    partial_sums = get_partial_sums(x, precision=precision)
+    partial_sums = get_partial_sums(x, sequence=alternating_log_sequence, precision=precision)
+    # partial_sums = get_partial_sums(x, sequence=alternating_harmonic_sequence, precision=precision)
     print('Sequence of partial sums has converged.')
     
-    #------------- Plotting -------------#
     # Number of terms used in rearrangement
     n = len(partial_sums)
     
     print(f'There are {n} partial sums.') 
     ns = np.arange(1, n + 1)
 
+    # Calculate the residual
+    partial_sums = np.array(partial_sums)
+    residual = np.abs(partial_sums - x)
+
+    #------------- Plotting -------------#
+
+    
+    ### Subplot 1 ###
 
     fig = plt.figure(figsize=(12, 4)) 
     gs = gridspec.GridSpec(1, 2, figure=fig)
 
+    ### Subplot 1 ###
+
     ax = fig.add_subplot(gs[0, :-1])
+    # ax = fig.add_subplot(gs[0, 0])
     print('Plotting...')
     ax.plot(ns, np.full((n,), x), label='x', linestyle='-', zorder=9999)
     # Plot the partial sums
     ax.plot(ns, partial_sums, label='Rearrangement', linestyle='', marker='.', markersize=0.9)
     print('Plotting complete.')
 
-    ax.legend(loc='lower left')
+    ax.legend(loc='lower right')
+    # Technique for cutting off the left part of plot to where the partial
+        # sums are closer to converging
     ax.set_xlim(left=3)
-    ax.set_ylim(bottom=4.9, top=5.3)
-    
+    ax.set_xscale('log')
+
+    ### Subplot 2 ###
+
     ax2 = fig.add_subplot(gs[0, -1])
 
-    print('Calculating sequence of partial sums of original arrangement.')
-    alternating_harmonic_sequence = np.array(
-        [ 1/k if (k % 2 == 0) else -1/k for k in range(1, n+1)]
-    )
-
-    partial_sums = [alternating_harmonic_sequence[0]]
-
-    for a in alternating_harmonic_sequence[1:]:
-        partial_sums.append(partial_sums[-1] + a)
-
-    print('Plotting original series.')
-    ax2.plot(ns, partial_sums, label='Partial sums', linestyle='', marker='.', markersize=0.9)
-    ax2.set_xlim(left=3)
-    ax2.set_ylim(bottom=-0.75, top=-0.65)
-    ax2.legend(loc='lower right')
+    print('Plotting residual.')
+    ax2.plot(ns, residual, label=r'$|s_n - x|$', linestyle='', marker='.', markersize=0.6)
+    ax2.set_xlim(left=3, right=n)
+    ax2.set_yscale('log')
+    ax2.legend(loc='upper right')
     
     plt.show()
     
